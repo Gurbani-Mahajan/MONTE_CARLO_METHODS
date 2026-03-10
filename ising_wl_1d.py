@@ -92,29 +92,31 @@ plt.title('Log of density of states for N='+str(num_sites)+' spin sites')
 plt.grid(True)
 plt.show()
 
-#finding partition function X=sum[E](g*exp(-beta*E))
-
 T=np.linspace(0.5,5,1000)
-Z=np.zeros(len(T))
-Z_t=np.zeros(len(T)) #analytical using transfer matrix method
+Z=np.zeros(len(T)) #Z/Z0 to avoid overflow
+U=np.zeros(len(T)) #internal energy
+U_2=np.zeros(len(T))
+C_v=np.zeros(len(T))
 for k in range(len(T)):
     t=T[k]
     beta=1/(kb*t)
     #taking out max to prevent overflow from numerical recipies
-    diff=ln_g-(beta*E)
-    m=max(diff)
-    Z[k]=np.exp(m)*np.sum(np.exp(diff-m))
-    # using transfer matrix method
-    # z=2^n(cosh^n(beta*j)+sinh^n(beta*j))
-    lambda1 = 2 * np.cosh(beta * J)
-    lambda2 = 2 * np.abs(np.sinh(beta * J))  # abs() for stability
-    Z_t[k] = lambda1 ** num_sites + lambda2 ** num_sites
-plt.figure(2)
-plt.plot(T,Z, label='numerical')
-plt.plot(T, Z_t, 'r:', label='analytical', )
-plt.ylabel('Z')
+    #z=exp(ln_g(e)-beta*e)
+    #z/z0=exp(ln_g(e)-ln_g(e_min) - (beta*e - beta*e_min))
+    for i in range(len(E)):
+        z=np.exp(ln_g[i]-ln_g[0]-beta*(E[i]-E_min))
+        Z[k]+=z
+        U[k]+=z*E[i]
+        U_2[k]+=z*(E[i])**2 #sum((g*exp(-beta*e)*e)**2)
+    U[k]*=1./Z[k] #U=(sum(g*exp(-beta*e)*e))/Z
+    U_2[k]*=1./Z[k]
+    C_v[k]=(U_2[k]-(U[k]**2))/(t**2) #Cv = d<E>/dt =(var(U[k])/(t**2)
+
+tc=2.269*np.ones(len(T))
+plt.figure(3)
+plt.plot(T,C_v)
+plt.ylabel('Cv')
 plt.xlabel('T')
-plt.title('Variation of Partition Function (Z)  with Temperature')
+plt.title('Variation of Specific Heat (Cv)  with T for 1D')
 plt.grid(True)
-plt.legend()
 plt.show()
